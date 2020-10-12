@@ -15,6 +15,20 @@ function getStyle(element, attrs = [], toNumber = true) {
     return styleInfo
 }
 
+function throttle(fn, wait = 50) {
+    let timer = null;
+    return function () {
+        const context = this;
+        const args = arguments;
+        if (!timer) {
+            timer = setTimeout(function () {
+                fn.apply(context, args);
+                timer = null;
+            }, wait)
+        }
+    }
+}
+
 function getScrollParent(element) {
     var parent = element.parentNode;
     if (!parent || parent === document.body.parentNode) {
@@ -32,6 +46,8 @@ function getScrollParent(element) {
     }
     return getScrollParent(element.parentNode);
 }
+
+const stop = e => { e.stopPropagation() }
 
 /** 
  * @param { DEFAULT_OPTIONS }
@@ -55,23 +71,27 @@ class popper {
             removeOnDestory: true,
             onCreate: null,
             trigger: 'click',
-            appendToBody: false,
+            appendToBody: true,
+            popperPadding: 20
         }
         this.isOpen = false
         this.option = Object.assign({}, DEFAULT_OPTIONS, option)
         this.refernceElement = refernceElement
         this.popperElement = popperElement
         this.popper = null
+        this.arrow = null
         this.useByTooltip = false
+        this.screenHeight = this.getScreenHeight()
         this.root = getScrollParent(this.refernceElement)
         this.bindTriggerEventListener()
     }
-    // 
+    // bind Scroll触发
     bindEventListener() {
+        this.popper.addEventListener('click', stop, false)
         if (this.option.eventsEnabled) {
-            this.root.addEventListener('scroll', () => {
+            this.root.addEventListener('scroll', throttle(() => {
                 this.update()
-            }, false)
+            }) , false)
         }
     }
     // 设置scroll监听器
@@ -97,7 +117,6 @@ class popper {
             }
         })
         oppositeEvents.forEach(event => {
-            console.log(this.handlePopper.bind)
             this.refernceElement.addEventListener(event, this.handlePopper.bind(this), false)
         })
         directEvents.forEach(event => {
@@ -130,27 +149,31 @@ class popper {
         }
         else popper.appendChild(this.popperElement)
         popper.appendChild(arrow)
-        if(this.option.appendToBody) document.body.appendChild(popper)
+        if (this.option.appendToBody) document.body.appendChild(popper)
         else {
             this.refernceElement.appendChild(popper)
             this.refernceElement.style.position = 'relative'
         }
-        
+
         this.popper = popper
+        this.arrow = arrow
         this.bindEventListener()
         this.update()
     }
     // 更新popper位置
     update() {
-        console.log('122')
         const xy = this.calcPopper()
         this.popper.style.left = `${xy.x}px`
         this.popper.style.top = `${xy.y}px`
         this.option.placement = xy.place
+        this.arrow.style.left = `${xy.arrow__x}px`
+        this.arrow.style.top = `${xy.arrow__y}px`
+        this.arrow.style.transform = `rotate(${xy.rotate}deg)`
     }
     // 读取refernce位置
     refernceXY() {
         let { left, right, top, bottom, width, height } = this.refernceElement.getBoundingClientRect()
+        console.log(top)
         return {
             left,
             right,
@@ -160,91 +183,104 @@ class popper {
             height
         }
     }
+    getScreenHeight() {
+        return document.documentElement.clientHeight || document.body.clientHeight
+    }
     // 计算Popper当前的位置
     calcPopper() {
         // 锁定项位置
         let { left, right, top, bottom, width, height } = this.refernceXY()
-        if(!this.option.appendToBody) {
-            left = right = top = bottom = 0
-        }
+        let nTop = top
         // popper位置
         let popper = getStyle(this.popper, ['width', 'height', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'])
         let popperWidth = popper.width + popper.paddingLeft + popper.paddingRight
         let popperHeight = popper.height + popper.paddingTop + popper.paddingBottom
+        if (!this.option.appendToBody) {
+            left = right = top = bottom = 0
+        }
         const handleEvent = {
-            left() {
+            left: ()=> {
                 return {
-                    x: left - popperWidth,
+                    x: left - popperWidth - this.option.popperPadding,
                     y: height / 2 + top - popperHeight / 2
                 }
             },
-            leftStart() {
+            leftStart: ()=> {
                 return {
-                    x: left - popperWidth,
+                    x: left - popperWidth - this.option.popperPadding,
                     y: top
                 }
             },
-            leftEnd() {
+            leftEnd: ()=> {
                 return {
-                    x: left - popperWidth,
+                    x: left - popperWidth - this.option.popperPadding,
                     y: top - (popperHeight - height)
                 }
             },
-            right: ()=> {
+            right: () => {
                 return {
-                    x: this.option.appendToBody ? right : width,
-                    // x: right,
+                    x: (this.option.appendToBody ? right : width) + this.option.popperPadding,
                     y: height / 2 + top - popperHeight / 2
                 }
             },
-            rightStart: ()=> {
+            rightStart: () => {
                 return {
-                    x: this.option.appendToBody ? right : width,
+                    x: (this.option.appendToBody ? right : width) + this.option.popperPadding,
                     y: top
                 }
             },
-            rightEnd: ()=> {
+            rightEnd: () => {
                 return {
-                    x: this.option.appendToBody ? right : width,
+                    x: (this.option.appendToBody ? right : width) + this.option.popperPadding,
                     y: top - (popperHeight - height)
                 }
             },
-            top() {
+            top: ()=> {
                 return {
                     x: left - (popperWidth - width) / 2,
-                    y: top - popperHeight,
-                    place: top - popperHeight < 0 ? 'bottom' : 'top'
+                    y: top - popperHeight - this.option.popperPadding,
+                    place: nTop - popperHeight - this.option.popperPadding*2 < 0 ? 'bottom' : 'top',
+                    arrow__x: (popperWidth - width)/2 + width*0.3,
+                    arrow__y: popperHeight - 2,
+                    rotate: 180
                 }
             },
-            topStart() {
+            topStart: ()=> {
                 return {
                     x: left,
-                    y: top - popperHeight
+                    y: top - popperHeight - this.option.popperPadding,
+                    place: nTop - popperHeight - this.option.popperPadding*2 < 0 ? 'bottomStart' : 'topStart',
+                    arrow__x: (popperWidth - width)/2 + width*0.3,
+                    arrow__y: popperHeight - 2,
+                    rotate: 180
                 }
             },
-            topEnd() {
+            topEnd: ()=> {
                 return {
                     x: left - (popperWidth - width),
-                    y: top - popperHeight
+                    y: top - popperHeight - this.option.popperPadding
                 }
             },
-            bottom() {
+            bottom: ()=> {
                 return {
                     x: left - (popperWidth - width) / 2,
-                    y: top + height,
-                    place: top - popperHeight < 0 ? 'bottom' : 'top'
+                    y: top + height + this.option.popperPadding,
+                    place: nTop + height + popperHeight + this.option.popperPadding*2 > this.screenHeight ? 'top' : 'bottom',
+                    arrow__x: (popperWidth - width)/2 + width*0.3,
+                    arrow__y: -6,
+                    rotate: 0
                 }
             },
-            bottomStart() {
+            bottomStart: ()=> {
                 return {
                     x: left,
-                    y: top + height
+                    y: top + height + this.option.popperPadding
                 }
             },
-            bottomEnd() {
+            bottomEnd: ()=> {
                 return {
                     x: left - (popperWidth - width),
-                    y: top + height
+                    y: top + height + this.option.popperPadding
                 }
             },
         }
@@ -254,7 +290,7 @@ class popper {
         this.isOpen = false
         this.popper && (this.popper.parentNode.removeChild(this.popper), this.popper = null)
         if (this.option.eventsEnabled) {
-            this.root.removeEventListener('scroll', ()=> {})
+            this.root.removeEventListener('scroll', () => { })
         }
     }
 }
