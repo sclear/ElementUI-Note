@@ -15,6 +15,34 @@ function getStyle(element, attrs = [], toNumber = true) {
     return styleInfo
 }
 
+function getElementHeight(child, element = document.querySelector('.thrid')) {
+    console.log(child)
+    console.log(element)
+    // let child = document.querySelector(target);
+    let __scrollTop__,
+      offsetParents = [];
+    let pointer = child.offsetParent;
+    while (
+      pointer &&
+      element !== pointer &&
+      element.contains(pointer)
+    ) {
+      offsetParents.push(pointer);
+      pointer = pointer.offsetParent;
+    }
+    __scrollTop__ =
+      child.offsetTop +
+      offsetParents.reduce((pre, curr) => pre + curr.offsetTop, 0);
+    console.log(offsetParents)
+    console.log(__scrollTop__)
+    return __scrollTop__;
+  }
+
+function getOffsetParent(element) {
+    // NOTE: 1 DOM access here
+    var offsetParent = element.offsetParent;
+    return offsetParent === document.body || !offsetParent ? document.documentElement : offsetParent;
+}
 function throttle(fn, wait = 50) {
     let timer = null;
     return function () {
@@ -29,12 +57,14 @@ function throttle(fn, wait = 50) {
     }
 }
 
-function getScrollParent(element) {
+function getScrollParent(element, cb) {
     var parent = element.parentNode;
-    if (!parent || parent === document.body.parentNode) {
-        return window;
+    if (!parent || parent === document.documentElement) {
+        cb && cb(document.documentElement);
+        return document.documentElement;
     }
     if (parent.scrollTop || parent.scrollLeft) {
+        cb && cb(parent);
         return parent;
     }
     if (
@@ -42,9 +72,10 @@ function getScrollParent(element) {
         ['scroll', 'auto'].indexOf(getStyle(parent, ['overflow-x'], false)['overflow-x']) !== -1 ||
         ['scroll', 'auto'].indexOf(getStyle(parent, ['overflow-y'], false)['overflow-y']) !== -1
     ) {
+        cb && cb(parent);
         return parent;
     }
-    return getScrollParent(element.parentNode);
+    return getScrollParent(element.parentNode, cb);
 }
 
 const stop = e => { e.stopPropagation() }
@@ -83,6 +114,11 @@ class popper {
         this.useByTooltip = false
         this.screenHeight = this.getScreenHeight()
         this.root = getScrollParent(this.refernceElement)
+        this.parentScrollList = []
+        getScrollParent(this.root, wrap=> {
+            this.root !== wrap && this.parentScrollList.push(wrap)
+        })
+        console.log(this.parentScrollList)
         this.bindTriggerEventListener()
     }
     // bind Scroll触发
@@ -91,6 +127,7 @@ class popper {
         if (this.option.eventsEnabled) {
             this.root.addEventListener('scroll', throttle(() => {
                 this.update()
+                getElementHeight(this.refernceElement)
             }) , false)
         }
     }
@@ -173,7 +210,6 @@ class popper {
     // 读取refernce位置
     refernceXY() {
         let { left, right, top, bottom, width, height } = this.refernceElement.getBoundingClientRect()
-        console.log(top)
         return {
             left,
             right,
@@ -195,8 +231,12 @@ class popper {
         let popper = getStyle(this.popper, ['width', 'height', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'])
         let popperWidth = popper.width + popper.paddingLeft + popper.paddingRight
         let popperHeight = popper.height + popper.paddingTop + popper.paddingBottom
+        // let tops = this.parentScrollList.reduce((pre, next)=> pre + next.scrollTop, 0)
+        let tops = this.parentScrollList.reduce((pre, next)=> pre + next.scrollTop, 0)
+        // console.log(this.parentScrollList[0].scrollTop)
+        // console.log(tops)
         if (!this.option.appendToBody) {
-            left = right = top = bottom = 0
+            left = right = top = bottom = tops = 0
         }
         const handleEvent = {
             left: ()=> {
@@ -238,7 +278,7 @@ class popper {
             top: ()=> {
                 return {
                     x: left - (popperWidth - width) / 2,
-                    y: top - popperHeight - this.option.popperPadding,
+                    y: top - popperHeight - this.option.popperPadding + tops,
                     place: nTop - popperHeight - this.option.popperPadding*2 < 0 ? 'bottom' : 'top',
                     arrow__x: (popperWidth - width)/2 + width*0.3,
                     arrow__y: popperHeight - 2,
@@ -264,7 +304,7 @@ class popper {
             bottom: ()=> {
                 return {
                     x: left - (popperWidth - width) / 2,
-                    y: top + height + this.option.popperPadding,
+                    y: top + height + this.option.popperPadding + tops,
                     place: nTop + height + popperHeight + this.option.popperPadding*2 > this.screenHeight ? 'top' : 'bottom',
                     arrow__x: (popperWidth - width)/2 + width*0.3,
                     arrow__y: -6,
