@@ -65,7 +65,9 @@ function getScrollParent(element, cb) {
     }
     if (parent.scrollTop || parent.scrollLeft) {
         cb && cb(parent);
-        return parent;
+        if(!cb) {
+            return parent
+        }
     }
     if (
         ['scroll', 'auto'].indexOf(getStyle(parent, ['overflow'], false)['overflow']) !== -1 ||
@@ -73,7 +75,10 @@ function getScrollParent(element, cb) {
         ['scroll', 'auto'].indexOf(getStyle(parent, ['overflow-y'], false)['overflow-y']) !== -1
     ) {
         cb && cb(parent);
-        return parent;
+        if(!cb) {
+            return parent
+        }
+        // return parent;
     }
     return getScrollParent(element.parentNode, cb);
 }
@@ -114,11 +119,6 @@ class popper {
         this.useByTooltip = false
         this.screenHeight = this.getScreenHeight()
         this.root = getScrollParent(this.refernceElement)
-        this.parentScrollList = []
-        getScrollParent(this.root, wrap=> {
-            this.root !== wrap && this.parentScrollList.push(wrap)
-        })
-        console.log(this.parentScrollList)
         this.bindTriggerEventListener()
     }
     // bind Scroll触发
@@ -127,7 +127,6 @@ class popper {
         if (this.option.eventsEnabled) {
             this.root.addEventListener('scroll', throttle(() => {
                 this.update()
-                getElementHeight(this.refernceElement)
             }) , false)
         }
     }
@@ -196,10 +195,12 @@ class popper {
         this.arrow = arrow
         this.bindEventListener()
         this.update()
+        this.update()
     }
     // 更新popper位置
     update() {
         const xy = this.calcPopper()
+        console.log(xy.y)
         this.popper.style.left = `${xy.x}px`
         this.popper.style.top = `${xy.y}px`
         this.option.placement = xy.place
@@ -210,10 +211,13 @@ class popper {
     // 读取refernce位置
     refernceXY() {
         let { left, right, top, bottom, width, height } = this.refernceElement.getBoundingClientRect()
+        const documentEl = document.documentElement.getBoundingClientRect()
+        console.log(top - documentEl.top)
         return {
             left,
             right,
-            top,
+            top: top - documentEl.top,
+            nTop: top,
             bottom,
             width,
             height
@@ -225,18 +229,13 @@ class popper {
     // 计算Popper当前的位置
     calcPopper() {
         // 锁定项位置
-        let { left, right, top, bottom, width, height } = this.refernceXY()
-        let nTop = top
+        let { left, right, top, bottom,nTop, width, height } = this.refernceXY()
         // popper位置
         let popper = getStyle(this.popper, ['width', 'height', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'])
         let popperWidth = popper.width + popper.paddingLeft + popper.paddingRight
         let popperHeight = popper.height + popper.paddingTop + popper.paddingBottom
-        // let tops = this.parentScrollList.reduce((pre, next)=> pre + next.scrollTop, 0)
-        let tops = this.parentScrollList.reduce((pre, next)=> pre + next.scrollTop, 0)
-        // console.log(this.parentScrollList[0].scrollTop)
-        // console.log(tops)
         if (!this.option.appendToBody) {
-            left = right = top = bottom = tops = 0
+            left = right = top = bottom = 0
         }
         const handleEvent = {
             left: ()=> {
@@ -278,7 +277,7 @@ class popper {
             top: ()=> {
                 return {
                     x: left - (popperWidth - width) / 2,
-                    y: top - popperHeight - this.option.popperPadding + tops,
+                    y: top - popperHeight - this.option.popperPadding,
                     place: nTop - popperHeight - this.option.popperPadding*2 < 0 ? 'bottom' : 'top',
                     arrow__x: (popperWidth - width)/2 + width*0.3,
                     arrow__y: popperHeight - 2,
@@ -304,7 +303,7 @@ class popper {
             bottom: ()=> {
                 return {
                     x: left - (popperWidth - width) / 2,
-                    y: top + height + this.option.popperPadding + tops,
+                    y: top + height + this.option.popperPadding,
                     place: nTop + height + popperHeight + this.option.popperPadding*2 > this.screenHeight ? 'top' : 'bottom',
                     arrow__x: (popperWidth - width)/2 + width*0.3,
                     arrow__y: -6,
