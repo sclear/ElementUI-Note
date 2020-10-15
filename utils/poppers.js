@@ -15,34 +15,6 @@ function getStyle(element, attrs = [], toNumber = true) {
     return styleInfo
 }
 
-function getElementHeight(child, element = document.querySelector('.thrid')) {
-    console.log(child)
-    console.log(element)
-    // let child = document.querySelector(target);
-    let __scrollTop__,
-      offsetParents = [];
-    let pointer = child.offsetParent;
-    while (
-      pointer &&
-      element !== pointer &&
-      element.contains(pointer)
-    ) {
-      offsetParents.push(pointer);
-      pointer = pointer.offsetParent;
-    }
-    __scrollTop__ =
-      child.offsetTop +
-      offsetParents.reduce((pre, curr) => pre + curr.offsetTop, 0);
-    console.log(offsetParents)
-    console.log(__scrollTop__)
-    return __scrollTop__;
-  }
-
-function getOffsetParent(element) {
-    // NOTE: 1 DOM access here
-    var offsetParent = element.offsetParent;
-    return offsetParent === document.body || !offsetParent ? document.documentElement : offsetParent;
-}
 function throttle(fn, wait = 50) {
     let timer = null;
     return function () {
