@@ -37,7 +37,7 @@ function getScrollParent(element, cb) {
     }
     if (parent.scrollTop || parent.scrollLeft) {
         cb && cb(parent);
-        if(!cb) {
+        if (!cb) {
             return parent
         }
     }
@@ -47,10 +47,9 @@ function getScrollParent(element, cb) {
         ['scroll', 'auto'].indexOf(getStyle(parent, ['overflow-y'], false)['overflow-y']) !== -1
     ) {
         cb && cb(parent);
-        if(!cb) {
+        if (!cb) {
             return parent
         }
-        // return parent;
     }
     return getScrollParent(element.parentNode, cb);
 }
@@ -89,6 +88,7 @@ class popper {
         this.popper = null
         this.arrow = null
         this.useByTooltip = false
+        this.referWidth = null
         this.screenHeight = this.getScreenHeight()
         this.root = getScrollParent(this.refernceElement)
         this.bindTriggerEventListener()
@@ -99,7 +99,7 @@ class popper {
         if (this.option.eventsEnabled) {
             this.root.addEventListener('scroll', throttle(() => {
                 this.update()
-            }) , false)
+            }), false)
         }
     }
     // 设置scroll监听器
@@ -157,34 +157,39 @@ class popper {
         }
         else popper.appendChild(this.popperElement)
         popper.appendChild(arrow)
+        this.popper = popper
+        this.arrow = arrow
+        this.bindEventListener()
+        this.createXPlace()
+        this.popper.style['minWidth'] = this.referWidth + 'px'
         if (this.option.appendToBody) document.body.appendChild(popper)
         else {
             this.refernceElement.appendChild(popper)
             this.refernceElement.style.position = 'relative'
         }
-
-        this.popper = popper
-        this.arrow = arrow
-        this.bindEventListener()
         this.update()
-        this.update()
+    }
+    createXPlace() {
+        this.option.placement = this.calcPopper().place
+        
     }
     // 更新popper位置
     update() {
+        const placement = this.option.placement
         const xy = this.calcPopper()
-        console.log(xy.y)
         this.popper.style.left = `${xy.x}px`
         this.popper.style.top = `${xy.y}px`
         this.option.placement = xy.place
-        this.arrow.style.left = `${xy.arrow__x}px`
-        this.arrow.style.top = `${xy.arrow__y}px`
-        this.arrow.style.transform = `rotate(${xy.rotate}deg)`
+        if (xy.place !== placement) {
+            this.arrow.style.left = `${xy.arrow__x}px`
+            this.arrow.style.top = `${xy.arrow__y}px`
+            this.arrow.style.transform = `rotate(${xy.rotate}deg)`
+        }
     }
     // 读取refernce位置
     refernceXY() {
         let { left, right, top, bottom, width, height } = this.refernceElement.getBoundingClientRect()
         const documentEl = document.documentElement.getBoundingClientRect()
-        console.log(top - documentEl.top)
         return {
             left,
             right,
@@ -201,7 +206,7 @@ class popper {
     // 计算Popper当前的位置
     calcPopper() {
         // 锁定项位置
-        let { left, right, top, bottom,nTop, width, height } = this.refernceXY()
+        let { left, right, top, bottom, nTop, width, height } = this.refernceXY()
         // popper位置
         let popper = getStyle(this.popper, ['width', 'height', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'])
         let popperWidth = popper.width + popper.paddingLeft + popper.paddingRight
@@ -210,19 +215,19 @@ class popper {
             left = right = top = bottom = 0
         }
         const handleEvent = {
-            left: ()=> {
+            left: () => {
                 return {
                     x: left - popperWidth - this.option.popperPadding,
                     y: height / 2 + top - popperHeight / 2
                 }
             },
-            leftStart: ()=> {
+            leftStart: () => {
                 return {
                     x: left - popperWidth - this.option.popperPadding,
                     y: top
                 }
             },
-            leftEnd: ()=> {
+            leftEnd: () => {
                 return {
                     x: left - popperWidth - this.option.popperPadding,
                     y: top - (popperHeight - height)
@@ -246,49 +251,49 @@ class popper {
                     y: top - (popperHeight - height)
                 }
             },
-            top: ()=> {
+            top: () => {
                 return {
                     x: left - (popperWidth - width) / 2,
                     y: top - popperHeight - this.option.popperPadding,
-                    place: nTop - popperHeight - this.option.popperPadding*2 < 0 ? 'bottom' : 'top',
-                    arrow__x: (popperWidth - width)/2 + width*0.3,
+                    place: nTop - popperHeight - this.option.popperPadding * 2 < 0 ? 'bottom' : 'top',
+                    arrow__x: (popperWidth - width) / 2 + width * 0.3,
                     arrow__y: popperHeight - 2,
                     rotate: 180
                 }
             },
-            topStart: ()=> {
+            topStart: () => {
                 return {
                     x: left,
                     y: top - popperHeight - this.option.popperPadding,
-                    place: nTop - popperHeight - this.option.popperPadding*2 < 0 ? 'bottomStart' : 'topStart',
-                    arrow__x: (popperWidth - width)/2 + width*0.3,
+                    place: nTop - popperHeight - this.option.popperPadding * 2 < 0 ? 'bottomStart' : 'topStart',
+                    arrow__x: (popperWidth - width) / 2 + width * 0.3,
                     arrow__y: popperHeight - 2,
                     rotate: 180
                 }
             },
-            topEnd: ()=> {
+            topEnd: () => {
                 return {
                     x: left - (popperWidth - width),
                     y: top - popperHeight - this.option.popperPadding
                 }
             },
-            bottom: ()=> {
+            bottom: () => {
                 return {
                     x: left - (popperWidth - width) / 2,
                     y: top + height + this.option.popperPadding,
-                    place: nTop + height + popperHeight + this.option.popperPadding*2 > this.screenHeight ? 'top' : 'bottom',
-                    arrow__x: (popperWidth - width)/2 + width*0.3,
+                    place: nTop + height + popperHeight + this.option.popperPadding * 2 > this.screenHeight ? 'top' : 'bottom',
+                    arrow__x: (popperWidth - width) / 2 + width * 0.3,
                     arrow__y: -6,
                     rotate: 0
                 }
             },
-            bottomStart: ()=> {
+            bottomStart: () => {
                 return {
                     x: left,
                     y: top + height + this.option.popperPadding
                 }
             },
-            bottomEnd: ()=> {
+            bottomEnd: () => {
                 return {
                     x: left - (popperWidth - width),
                     y: top + height + this.option.popperPadding
