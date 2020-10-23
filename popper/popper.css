@@ -1,0 +1,88 @@
+*{
+    padding:0;
+    margin: 0;
+}
+.popper{
+    padding: 15px;
+    background: white;
+    min-width: 200px;
+    display: inline-block;
+    border-radius: 4px;
+    border: 1px solid black;
+    /* transition: all .1 linear; */
+    animation: ani 5s forwards;
+    transform-origin: center bottom;
+}
+@keyframes ani {
+    from {
+        transition: all .2s ease;
+            transform: scaleY(0);
+    }
+    to {
+        transform: scaleY(1);
+    }
+}
+.wrap{
+    margin-left: 20px;
+    /* margin-top: 30px; */
+    width: 200px;
+    background: tomato;
+    display: inline-block;
+}
+.scrollContainer{
+    height: 1500px;
+    overflow-y: scroll;
+}
+
+.thrid{
+    height: 200px;
+    overflow: auto;
+}
+body{
+    padding-left: 200px;
+}
+/* .popper__arrow{
+    width:0;
+    height:0;
+    border-top:50px solid transparent;
+    border-bottom: 50px solid transparent;
+    border-left: 50px solid green;
+} */
+.popper__arrow{
+    position: absolute;
+    height: 8px;
+    width: 8px;
+    top: -6px;
+}
+.popper__arrow:before{
+    box-sizing: content-box;
+    width: 0px;
+    height: 0px;
+    position: absolute;
+    top: 0px;;
+    right:1px;
+    padding:0;
+    border-bottom:3px solid #FFFFFF;
+    border-top:3px solid transparent;
+    border-left:3px solid transparent;
+    border-right:3px solid transparent;
+    display: block;
+    content:'';
+    z-index: 12;
+}
+.popper__arrow:after{
+    box-sizing: content-box;
+    width: 0px;
+    height: 0px;
+    position: absolute;
+    top: -2px;;
+    right:0px;
+    padding:0;
+    border-bottom:4px solid black;
+    border-top:4px solid transparent;
+    border-left:4px solid transparent;
+    border-right:4px solid transparent;
+    display: block;
+    content:'';
+    z-index:10
+}
